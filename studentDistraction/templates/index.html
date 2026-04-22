@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student AI Dashboard</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+}
+
+.container{
+    width:90%;
+    height:90vh;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.card{
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    border-radius:18px;
+    padding:20px;
+}
+
+.left{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+.profile{
+    text-align:center;
+}
+
+.profile img{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    margin-bottom:10px;
+}
+
+.stat{
+    font-size:18px;
+    margin:8px 0;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+    border:none;
+    border-radius:10px;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border:none;
+    border-radius:10px;
+    background:#4facfe;
+    color:white;
+    cursor:pointer;
+}
+
+.result{
+    margin-top:15px;
+    text-align:center;
+    font-weight:bold;
+    font-size:18px;
+}
+
+.error{
+    color:#ff4d4d;
+    margin-top:10px;
+    text-align:center;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="left">
+
+    <div class="card profile">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+        <h3>Student Analytics AI</h3>
+        <p>ML-based Distraction Detection</p>
+    </div>
+
+    <div class="card">
+        <div class="stat">👨‍🎓 Total Students: <b>120</b></div>
+        <div class="stat">📊 Model Accuracy: <b>87%</b></div>
+    </div>
+
+</div>
+
+<div class="card">
+
+    <h2>📊 Student Analyzer</h2>
+
+    <input id="student_id" placeholder="Student ID" required>
+
+    <input id="study_hours" type="number" min="0" max="24" placeholder="Study Hours" required>
+    <input id="social_media" type="number" min="0" max="24" placeholder="Social Media" required>
+    <input id="youtube" type="number" min="0" max="24" placeholder="YouTube" required>
+    <input id="gaming" type="number" min="0" max="24" placeholder="Gaming" required>
+    <input id="sleep" type="number" min="0" max="24" placeholder="Sleep" required>
+
+    <input id="stress" type="number" min="1" max="10" placeholder="Stress (1-10)" required>
+    <input id="attendance" type="number" min="0" max="100" placeholder="Attendance %" required>
+    <input id="grade" type="number" min="0" max="100" placeholder="Grade" required>
+    <input id="breaks" type="number" min="0" max="24" placeholder="Breaks" required>
+
+    <button onclick="analyze()">Analyze</button>
+
+    <div id="error" class="error"></div>
+    <div id="result" class="result"></div>
+
+</div>
+
+</div>
+
+<script>
+
+function analyze() {
+
+    let errorDiv = document.getElementById("error");
+    errorDiv.innerText = "";
+
+    let study = Number(document.getElementById("study_hours").value);
+    let social = Number(document.getElementById("social_media").value);
+    let youtube = Number(document.getElementById("youtube").value);
+    let gaming = Number(document.getElementById("gaming").value);
+    let sleep = Number(document.getElementById("sleep").value);
+    let stress = Number(document.getElementById("stress").value);
+    let attendance = Number(document.getElementById("attendance").value);
+    let grade = Number(document.getElementById("grade").value);
+    let breaks = Number(document.getElementById("breaks").value);
+
+    // EMPTY CHECK
+    if (
+        isNaN(study) || isNaN(social) || isNaN(youtube) ||
+        isNaN(gaming) || isNaN(sleep) || isNaN(stress) ||
+        isNaN(attendance) || isNaN(grade) || isNaN(breaks)
+    ) {
+        errorDiv.innerText = "⚠️ Please fill all fields";
+        return;
+    }
+
+    // HOURS VALIDATION
+    if (
+        study > 24 || social > 24 || youtube > 24 ||
+        gaming > 24 || sleep > 24 || breaks > 24
+    ) {
+        errorDiv.innerText = "⚠️ Hours cannot exceed 24";
+        return;
+    }
+
+    // RANGE VALIDATION
+    if (stress < 1 || stress > 10) {
+        errorDiv.innerText = "⚠️ Stress must be between 1-10";
+        return;
+    }
+
+    if (attendance > 100 || grade > 100) {
+        errorDiv.innerText = "⚠️ Attendance/Grade cannot exceed 100";
+        return;
+    }
+
+    let data = {
+        student_id: document.getElementById("student_id").value,
+        study_hours: study,
+        social_media: social,
+        youtube: youtube,
+        gaming: gaming,
+        sleep: sleep,
+        stress: stress,
+        attendance: attendance,
+        grade: grade,
+        breaks: breaks
+    };
+
+    fetch("/predict", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        let resultDiv = document.getElementById("result");
+
+        resultDiv.innerText =
+            data.result +
+            " | Score: " + data.score +
+            " | Risk: " + data.risk + "% " + data.risk_label;
+
+        // COLOR EFFECT
+        if (data.risk_label.includes("High")) {
+            resultDiv.style.color = "#ff4d4d";
+        } else if (data.risk_label.includes("Medium")) {
+            resultDiv.style.color = "#ffd166";
+        } else {
+            resultDiv.style.color = "#06d6a0";
+        }
+
+    })
+    .catch(err => {
+        document.getElementById("error").innerText = "⚠️ Error occurred";
+        console.error(err);
+    });
+}
+
+</script>
+
+</body>
+</html>
